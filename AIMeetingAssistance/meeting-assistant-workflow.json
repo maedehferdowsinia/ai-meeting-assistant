@@ -1,0 +1,3603 @@
+{
+  "name": "meeting assistant meeting assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "Meeting_Assistant_input_15016",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -672,
+        48
+      ],
+      "id": "id",
+      "name": "Webhook",
+      "webhookId": "whi"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "baleapi/setWebhook",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"url\": \"https://nukagman-n8n.iranserver.app/webhook/Meeting_Assistant_input_15016\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -688,
+        336
+      ],
+      "id": "a8e6d26a-1dc3-4bd9-a7e8-5171a536deee",
+      "name": "Set Bale Webhook (production)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "YOUR_BALE_BOT_TOKEN",
+              "type": "string",
+              "value": "api"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "1901f8e8-15c4-461c-87ea-f977da62ad71",
+      "name": "Bale Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "update_id",
+              "type": "number",
+              "value": "={{ Number($json.body?.update_id ?? -1) }}"
+            },
+            {
+              "id": "a2",
+              "name": "kind",
+              "type": "string",
+              "value": "={{ $json.body?.callback_query ? 'callback' : ($json.body?.message ? 'message' : 'other') }}"
+            },
+            {
+              "id": "a3",
+              "name": "chat_id",
+              "type": "string",
+              "value": "={{ String($json.body?.callback_query?.message?.chat?.id ?? $json.body?.message?.chat?.id ?? '') }}"
+            },
+            {
+              "id": "a4",
+              "name": "user_id",
+              "type": "string",
+              "value": "={{ String($json.body?.callback_query?.from?.id ?? $json.body?.message?.from?.id ?? '') }}"
+            },
+            {
+              "id": "a5",
+              "name": "text",
+              "type": "string",
+              "value": "={{ $json.body?.message?.text ?? '' }}"
+            },
+            {
+              "id": "a6",
+              "name": "callback_data",
+              "type": "string",
+              "value": "={{ $json.body?.callback_query?.data ?? '' }}"
+            },
+            {
+              "id": "a7",
+              "name": "audio_type",
+              "type": "string",
+              "value": "={{ (() => { const m = $json.body?.message; if (!m) return ''; if (m.voice) return 'voice'; if (m.audio) return 'audio'; const d = m.document; if (d && (String(d.mime_type || '').startsWith('audio/') || ['mp3','m4a','wav','ogg','oga','opus','aac','flac','amr','wma'].includes(String(d.file_name || '').split('.').pop().toLowerCase()))) return 'document'; return ''; })() }}"
+            },
+            {
+              "id": "a8",
+              "name": "audio_file_id",
+              "type": "string",
+              "value": "={{ $json.body?.message?.voice?.file_id ?? $json.body?.message?.audio?.file_id ?? $json.body?.message?.document?.file_id ?? '' }}"
+            },
+            {
+              "id": "a9",
+              "name": "audio_file_name",
+              "type": "string",
+              "value": "={{ $json.body?.message?.audio?.file_name ?? $json.body?.message?.audio?.title ?? $json.body?.message?.document?.file_name ?? '' }}"
+            },
+            {
+              "id": "a10",
+              "name": "audio_mime_type",
+              "type": "string",
+              "value": "={{ $json.body?.message?.voice?.mime_type ?? $json.body?.message?.audio?.mime_type ?? $json.body?.message?.document?.mime_type ?? '' }}"
+            },
+            {
+              "id": "a11",
+              "name": "audio_file_size",
+              "type": "string",
+              "value": "={{ String($json.body?.message?.voice?.file_size ?? $json.body?.message?.audio?.file_size ?? $json.body?.message?.document?.file_size ?? '') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dca815a8-c5b2-4891-b86e-54c60e917053",
+      "name": "Normalize Update",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -160,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "bale meeting state v1",
+          "mode": "list",
+          "value": "YOUR_MEETING_RECORDS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "keyValue": "={{ $json.chat_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "979914f9-9ad0-4261-9231-59edebb0dc66",
+      "name": "Get State",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        48
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ ({ ...$('Normalize Update').first().json, stage: $json.stage || 'idle', last_seen: $json.last_update_id ? Number($json.last_update_id) : -1, state: $json }) }}",
+        "options": {}
+      },
+      "id": "ea455aae-592a-4acf-bf6c-23a40ae1e67d",
+      "name": "Build Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "i1",
+              "leftValue": "={{ $json.update_id }}",
+              "operator": {
+                "operation": "gt",
+                "type": "number"
+              },
+              "rightValue": "={{ $json.last_seen }}"
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "9f755d0f-ff05-493e-b877-28f237d26e1b",
+      "name": "Is New Update?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        800,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const d = $json;\nconst stage = d.stage;\nconst text = String(d.text || '').trim();\nconst lower = text.toLowerCase();\nconst isStart = d.kind === 'message' && (lower === '/start' || lower.startsWith('/start ') || lower.startsWith('/start@'));\nconst isText = d.kind === 'message' && text !== '' && !text.startsWith('/');\nconst typeButtons = ['type_minutes', 'type_proposal'];\nconst catMap = { cat_consult: 'جلسه مشاوره', cat_coaching: 'جلسه کوچینگ', cat_training: 'جلسه آموزش' };\nconst toLatin = (s) => String(s || '').replace(/[۰-۹]/g, (c) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(c)).replace(/[٠-٩]/g, (c) => '٠١٢٣٤٥٦٧٨٩'.indexOf(c));\nconst normMobile = (s) => {\n  let t = toLatin(s).replace(/[\\s\\-()+]/g, '');\n  if (t.startsWith('0098')) t = '0' + t.slice(4);\n  else if (t.startsWith('98')) t = '0' + t.slice(2);\n  else if (/^9\\d{9}$/.test(t)) t = '0' + t;\n  return /^09\\d{9}$/.test(t) ? t : '';\n};\nlet mobile = '';\nlet action = null;\nif (isStart) action = 'start';\nelse if (d.kind === 'callback' && d.callback_data === 'begin_analysis' && stage === 'idle') action = 'begin';\nelse if (d.kind === 'callback' && d.callback_data === 'confirm_audio' && stage === 'awaiting_audio_confirm') action = 'audio_confirmed';\nelse if (d.kind === 'callback' && typeButtons.includes(d.callback_data) && stage === 'awaiting_output_type') action = 'type_selected';\nelse if (d.kind === 'callback' && catMap[d.callback_data] && stage === 'awaiting_category') action = 'category_selected';\nelse if (d.kind === 'message' && d.audio_type && (stage === 'awaiting_audio' || stage === 'awaiting_audio_confirm')) action = 'audio_received';\nelse if (isText && stage === 'awaiting_details') action = 'details_saved';\nelse if (isText && stage === 'awaiting_customer') action = 'customer_saved';\nelse if (isText && stage === 'awaiting_mobile') { mobile = normMobile(text); action = mobile ? 'mobile_saved' : 'bad_mobile'; }\nif (!action) action = stage === 'idle' ? 'unknown_idle' : 'wrong_input';\nconst output_type = typeButtons.includes(d.callback_data) ? (d.callback_data === 'type_proposal' ? 'proposal' : 'minutes') : ((d.state && d.state.output_type) || 'minutes');\nconst meeting_category = catMap[d.callback_data] || '';\nreturn { json: { ...d, text, action, output_type, meeting_category, mobile } };"
+      },
+      "id": "ce3821c4-c42f-4d2c-a24c-3b357e8b24fe",
+      "name": "Decide Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r0",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "start"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "start"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r1",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "begin"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "begin"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r2",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "audio_received"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "audio_received"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r3",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "audio_confirmed"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "audio_confirmed"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r4",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "details_saved"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "details_saved"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r5",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "customer_saved"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "customer_saved"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r6",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "unknown_idle"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "unknown_idle"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r7",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "wrong_input"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "wrong_input"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r8",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "type_selected"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "type_selected"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r9",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "category_selected"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "category_selected"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r10",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "mobile_saved"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "mobile_saved"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "r11",
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "bad_mobile"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "bad_mobile"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "79df978b-b993-4787-81ae-53bfa2ddfdc1",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1280,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "bale meeting state v1",
+          "mode": "list",
+          "value": "YOUR_MEETING_RECORDS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "keyValue": "={{ $('Decide Action').first().json.chat_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "chat_id",
+              "id": "chat_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "user_id",
+              "id": "user_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "stage",
+              "id": "stage",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_id",
+              "id": "audio_file_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_type",
+              "id": "audio_type",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_name",
+              "id": "audio_file_name",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_mime_type",
+              "id": "audio_mime_type",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_size",
+              "id": "audio_file_size",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "details_text",
+              "id": "details_text",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "customer_name",
+              "id": "customer_name",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "last_update_id",
+              "id": "last_update_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "updated_at",
+              "id": "updated_at",
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "value": {
+            "audio_file_id": "={{ '' }}",
+            "audio_file_name": "={{ '' }}",
+            "audio_file_size": "={{ '' }}",
+            "audio_mime_type": "={{ '' }}",
+            "audio_type": "={{ '' }}",
+            "chat_id": "={{ $('Decide Action').first().json.chat_id }}",
+            "customer_name": "={{ '' }}",
+            "details_text": "={{ '' }}",
+            "last_update_id": "={{ String($('Decide Action').first().json.update_id) }}",
+            "stage": "idle",
+            "updated_at": "={{ $now.toISO() }}",
+            "user_id": "={{ $('Decide Action').first().json.user_id }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "4571fd4e-d55e-4d3e-b07e-25a65cb47b60",
+      "name": "Reset State - Start",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        -608
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'سلام \\ud83d\\udc4b\\nاگر می‌خواهید محتوای جلسه‌تان را به من بدهید، دکمه زیر را بزنید.', reply_markup: { inline_keyboard: [[{ text: 'شروع آنالیز جلسه', callback_data: 'begin_analysis' }]] } }) }}",
+        "options": {}
+      },
+      "id": "9f2ead5d-3c12-4fa3-88c8-3b695a9da863",
+      "name": "Send Greeting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        -608
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "bale meeting state v1",
+          "mode": "list",
+          "value": "YOUR_MEETING_RECORDS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "keyValue": "={{ $('Decide Action').first().json.chat_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "chat_id",
+              "id": "chat_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "user_id",
+              "id": "user_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "stage",
+              "id": "stage",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_id",
+              "id": "audio_file_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_type",
+              "id": "audio_type",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_name",
+              "id": "audio_file_name",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_mime_type",
+              "id": "audio_mime_type",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_size",
+              "id": "audio_file_size",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "details_text",
+              "id": "details_text",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "customer_name",
+              "id": "customer_name",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "last_update_id",
+              "id": "last_update_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "updated_at",
+              "id": "updated_at",
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "value": {
+            "audio_file_id": "={{ '' }}",
+            "audio_file_name": "={{ '' }}",
+            "audio_file_size": "={{ '' }}",
+            "audio_mime_type": "={{ '' }}",
+            "audio_type": "={{ '' }}",
+            "chat_id": "={{ $('Decide Action').first().json.chat_id }}",
+            "customer_name": "={{ '' }}",
+            "details_text": "={{ '' }}",
+            "last_update_id": "={{ String($('Decide Action').first().json.update_id) }}",
+            "stage": "awaiting_audio",
+            "updated_at": "={{ $now.toISO() }}",
+            "user_id": "={{ $('Decide Action').first().json.user_id }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "13827ef0-bec9-4dcc-919d-788193756cc8",
+      "name": "Save State - Awaiting Audio",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'لطفاً فایل صوتی جلسه را ارسال کنید. می‌توانید ویس بگیرید یا فایل صوتی‌تان را بفرستید.' }) }}",
+        "options": {}
+      },
+      "id": "136e0871-7bfb-4746-9cda-0e99b364944a",
+      "name": "Ask For Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        -384
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "bale meeting state v1",
+          "mode": "list",
+          "value": "YOUR_MEETING_RECORDS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "keyValue": "={{ $('Decide Action').first().json.chat_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "chat_id",
+              "id": "chat_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "user_id",
+              "id": "user_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "stage",
+              "id": "stage",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_id",
+              "id": "audio_file_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_type",
+              "id": "audio_type",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_name",
+              "id": "audio_file_name",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_mime_type",
+              "id": "audio_mime_type",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_size",
+              "id": "audio_file_size",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "last_update_id",
+              "id": "last_update_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "updated_at",
+              "id": "updated_at",
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "value": {
+            "audio_file_id": "={{ $('Decide Action').first().json.audio_file_id }}",
+            "audio_file_name": "={{ $('Decide Action').first().json.audio_file_name }}",
+            "audio_file_size": "={{ $('Decide Action').first().json.audio_file_size }}",
+            "audio_mime_type": "={{ $('Decide Action').first().json.audio_mime_type }}",
+            "audio_type": "={{ $('Decide Action').first().json.audio_type }}",
+            "chat_id": "={{ $('Decide Action').first().json.chat_id }}",
+            "last_update_id": "={{ String($('Decide Action').first().json.update_id) }}",
+            "stage": "awaiting_audio_confirm",
+            "updated_at": "={{ $now.toISO() }}",
+            "user_id": "={{ $('Decide Action').first().json.user_id }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "3134e9c9-ee65-4db3-87d7-ff664aa4bfc7",
+      "name": "Save State - Audio Received",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'فایل صوتی دریافت شد ✅\\nدر صورت تأیید، روی دکمه «تایید» بزنید. اگر فایل اشتباه است، فایل درست را دوباره بفرستید.', reply_markup: { inline_keyboard: [[{ text: 'تایید', callback_data: 'confirm_audio' }]] } }) }}",
+        "options": {}
+      },
+      "id": "ebdc81b0-b7e6-4131-ae0b-87f6735eb5d3",
+      "name": "Ask Audio Confirmation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        -160
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "bale meeting state v1",
+          "mode": "list",
+          "value": "YOUR_MEETING_RECORDS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "keyValue": "={{ $('Decide Action').first().json.chat_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chat_id": "={{ $('Decide Action').first().json.chat_id }}",
+            "last_update_id": "={{ String($('Decide Action').first().json.update_id) }}",
+            "stage": "awaiting_details",
+            "updated_at": "={{ $now.toISO() }}",
+            "user_id": "={{ $('Decide Action').first().json.user_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "audio_file_id",
+              "displayName": "audio_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "audio_type",
+              "displayName": "audio_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "audio_file_name",
+              "displayName": "audio_file_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "audio_mime_type",
+              "displayName": "audio_mime_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "audio_file_size",
+              "displayName": "audio_file_size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "details_text",
+              "displayName": "details_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_update_id",
+              "displayName": "last_update_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f2a32eb4-f174-40c7-881a-eb8dcaec399a",
+      "name": "Save State - Awaiting Details",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'حالا توضیحات تکمیلی جلسه را به صورت متن بنویسید.' }) }}",
+        "options": {}
+      },
+      "id": "978383dc-d35e-4df6-99fb-a407e54ea0b5",
+      "name": "Ask For Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        64
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "bale meeting state v1",
+          "mode": "list",
+          "value": "YOUR_MEETING_RECORDS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "keyValue": "={{ $('Decide Action').first().json.chat_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chat_id": "={{ $('Decide Action').first().json.chat_id }}",
+            "details_text": "={{ $('Decide Action').first().json.text }}",
+            "last_update_id": "={{ String($('Decide Action').first().json.update_id) }}",
+            "stage": "awaiting_customer",
+            "updated_at": "={{ $now.toISO() }}",
+            "user_id": "={{ $('Decide Action').first().json.user_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "audio_file_id",
+              "displayName": "audio_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "audio_type",
+              "displayName": "audio_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "audio_file_name",
+              "displayName": "audio_file_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "audio_mime_type",
+              "displayName": "audio_mime_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "audio_file_size",
+              "displayName": "audio_file_size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "details_text",
+              "displayName": "details_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_update_id",
+              "displayName": "last_update_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "db31aa4a-7498-4ff7-a452-3c8eef852820",
+      "name": "Save State - Details Saved",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'نام مشتری را بنویسید.' }) }}",
+        "options": {}
+      },
+      "id": "95754e32-2be0-4afc-8f68-ae70fdac6f51",
+      "name": "Ask For Customer Name",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        288
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "bale meeting records v1",
+          "mode": "list",
+          "value": "YOUR_MEETING_RECORDS_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "audio_file_id": "={{ $('Decide Action').first().json.state.audio_file_id ?? '' }}",
+            "audio_file_name": "={{ $('Decide Action').first().json.state.audio_file_name ?? '' }}",
+            "audio_file_size": "={{ $('Decide Action').first().json.state.audio_file_size ?? '' }}",
+            "audio_mime_type": "={{ $('Decide Action').first().json.state.audio_mime_type ?? '' }}",
+            "audio_type": "={{ $('Decide Action').first().json.state.audio_type ?? '' }}",
+            "chat_id": "={{ $('Decide Action').first().json.chat_id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "customer_name": "={{ $('Decide Action').first().json.state.customer_name ?? '' }}",
+            "details_text": "={{ $('Decide Action').first().json.state.details_text ?? '' }}",
+            "source_update_id": "={{ String($('Decide Action').first().json.update_id) }}",
+            "status": "received",
+            "user_id": "={{ $('Decide Action').first().json.user_id }}",
+            "output_type": "={{ $('Decide Action').first().json.output_type }}",
+            "meeting_category": "={{ $('Decide Action').first().json.meeting_category }}",
+            "customer_mobile": "={{ $('Decide Action').first().json.state.customer_mobile ?? '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "chat_id",
+              "id": "chat_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "user_id",
+              "id": "user_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "customer_name",
+              "id": "customer_name",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "details_text",
+              "id": "details_text",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_id",
+              "id": "audio_file_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_type",
+              "id": "audio_type",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_name",
+              "id": "audio_file_name",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_mime_type",
+              "id": "audio_mime_type",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_size",
+              "id": "audio_file_size",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "source_update_id",
+              "id": "source_update_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "created_at",
+              "id": "created_at",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "status",
+              "id": "status",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "output_type",
+              "id": "output_type",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "meeting_category",
+              "id": "meeting_category",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "customer_mobile",
+              "id": "customer_mobile",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a2931871-a18c-4673-9384-10f69d68be7d",
+      "name": "Insert Meeting Record",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "bale meeting state v1",
+          "mode": "list",
+          "value": "YOUR_MEETING_RECORDS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "keyValue": "={{ $('Decide Action').first().json.chat_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "chat_id",
+              "id": "chat_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "user_id",
+              "id": "user_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "stage",
+              "id": "stage",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_id",
+              "id": "audio_file_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_type",
+              "id": "audio_type",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_name",
+              "id": "audio_file_name",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_mime_type",
+              "id": "audio_mime_type",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_size",
+              "id": "audio_file_size",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "details_text",
+              "id": "details_text",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "customer_name",
+              "id": "customer_name",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "last_update_id",
+              "id": "last_update_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "updated_at",
+              "id": "updated_at",
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "value": {
+            "audio_file_id": "={{ '' }}",
+            "audio_file_name": "={{ '' }}",
+            "audio_file_size": "={{ '' }}",
+            "audio_mime_type": "={{ '' }}",
+            "audio_type": "={{ '' }}",
+            "chat_id": "={{ $('Decide Action').first().json.chat_id }}",
+            "customer_name": "={{ '' }}",
+            "details_text": "={{ '' }}",
+            "last_update_id": "={{ String($('Decide Action').first().json.update_id) }}",
+            "stage": "idle",
+            "updated_at": "={{ $now.toISO() }}",
+            "user_id": "={{ $('Decide Action').first().json.user_id }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "ddae56ce-1054-4af9-a4e3-de262075384a",
+      "name": "Reset State - Done",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1904,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'در حال پردازش اطلاعات شما هستم، لطفاً کمی صبر کنید.' }) }}",
+        "options": {}
+      },
+      "id": "287f3d1c-83d9-4f16-a4f6-33560e755504",
+      "name": "Send Processing Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2208,
+        512
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'متوجه نشدم. اگر می‌خواهید محتوای جلسه‌تان را آنالیز کنم، روی دکمه «شروع آنالیز جلسه» بزنید.', reply_markup: { inline_keyboard: [[{ text: 'شروع آنالیز جلسه', callback_data: 'begin_analysis' }]] } }) }}",
+        "options": {}
+      },
+      "id": "0c5c58d6-c314-4247-b7d9-f8dac25aab26",
+      "name": "Send Not Understood",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1600,
+        720
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'لطفاً طبق دستورالعمل رفتار کنید و فقط موارد خواسته‌شده را بفرستید.' }) }}",
+        "options": {}
+      },
+      "id": "9db20e6b-3931-44d0-a828-ddc59822a048",
+      "name": "Send Follow Instructions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1600,
+        944
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f8e0ac8c-12b5-432e-b8f6-6a6b608d09d3",
+              "leftValue": "={{ $json.chat_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        80,
+        48
+      ],
+      "id": "fe0ab7d8-56e9-4189-9259-ae83ef0125a5",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/getFile",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ file_id: $('Decide Action').first().json.state.audio_file_id }) }}",
+        "options": {}
+      },
+      "id": "eba29262-306f-45d6-8d8c-70e0e2a315a1",
+      "name": "Get File Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2512,
+        512
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://tapi.bale.ai/file/bot{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/{{ $json.result.file_path }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "4b328010-06b4-4499-863c-822ca18a8365",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2800,
+        512
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item;\nconst bin = item.binary && item.binary.data;\nif (!bin) throw new Error('Audio download returned no binary data');\nconst buf = await this.helpers.getBinaryDataBuffer($itemIndex, 'data');\nconst head = buf.subarray(0, 16);\nconst asc = (s, e) => head.subarray(s, e).toString('latin1');\nlet sniffed = '';\nif (asc(0, 3) === 'ID3') sniffed = 'mp3';\nelse if (head[0] === 0xFF && (head[1] & 0xE0) === 0xE0) sniffed = ((head[1] >> 1) & 3) === 0 ? 'aac' : 'mp3';\nelse if (asc(0, 4) === 'RIFF' && asc(8, 12) === 'WAVE') sniffed = 'wav';\nelse if (asc(0, 4) === 'OggS') sniffed = 'ogg';\nelse if (asc(0, 4) === 'fLaC') sniffed = 'flac';\nelse if (asc(4, 8) === 'ftyp') sniffed = asc(8, 12) === 'M4A ' ? 'm4a' : 'mp4';\nelse if (head[0] === 0x1A && head[1] === 0x45 && head[2] === 0xDF && head[3] === 0xA3) sniffed = 'webm';\nelse if (asc(0, 5) === '#!AMR') sniffed = 'amr';\nelse if (asc(0, 4) === 'FORM') sniffed = 'aiff';\nelse if (head[0] === 0x30 && head[1] === 0x26 && head[2] === 0xB2 && head[3] === 0x75) sniffed = 'wma';\nconst brand = (sniffed === 'mp4' || sniffed === 'm4a') ? asc(8, 12) : '';\nlet codec = '';\nif (brand) {\n  const scan = buf.length > 6000000 ? Buffer.concat([buf.subarray(0, 3000000), buf.subarray(buf.length - 3000000)]) : buf;\n  if (scan.indexOf('samr') !== -1 || scan.indexOf('sawb') !== -1) codec = 'amr';\n  else if (scan.indexOf('mp4a') !== -1) codec = 'aac';\n}\nconst supported = ['flac', 'mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'ogg', 'wav', 'webm'];\nif (sniffed && !supported.includes(sniffed)) throw new Error('Audio content is ' + sniffed + ', which the transcription API does not accept. Conversion is required.');\nif (codec === 'amr') throw new Error('AMR audio inside a ' + brand.trim() + ' (3GP) container. The transcription API cannot decode AMR; conversion to mp3, wav or m4a is required.');\nconst faststart = (src) => {\n  const boxes = [];\n  let off = 0;\n  while (off + 8 <= src.length) {\n    let size = src.readUInt32BE(off);\n    const type = src.toString('latin1', off + 4, off + 8);\n    let header = 8;\n    if (size === 1) { size = Number(src.readBigUInt64BE(off + 8)); header = 16; }\n    else if (size === 0) size = src.length - off;\n    if (size < header || off + size > src.length) break;\n    boxes.push({ type, start: off, size, header });\n    off += size;\n  }\n  const layout = boxes.map((b) => b.type).join(',');\n  const iMoov = boxes.findIndex((b) => b.type === 'moov');\n  const iMdat = boxes.findIndex((b) => b.type === 'mdat');\n  if (iMoov < 0 || iMdat < 0 || iMoov < iMdat) return { buf: src, changed: false, layout };\n  const moov = boxes[iMoov];\n  const moovBuf = Buffer.from(src.subarray(moov.start, moov.start + moov.size));\n  const patch = (b, s, e, delta) => {\n    let o = s;\n    while (o + 8 <= e) {\n      const sz = b.readUInt32BE(o);\n      const t = b.toString('latin1', o + 4, o + 8);\n      if (sz < 8 || o + sz > e) break;\n      if (t === 'stco') {\n        const n = b.readUInt32BE(o + 12);\n        for (let i = 0; i < n; i++) { const p = o + 16 + i * 4; b.writeUInt32BE(b.readUInt32BE(p) + delta, p); }\n      } else if (t === 'co64') {\n        const n = b.readUInt32BE(o + 12);\n        for (let i = 0; i < n; i++) { const p = o + 16 + i * 8; b.writeBigUInt64BE(b.readBigUInt64BE(p) + BigInt(delta), p); }\n      } else if (['trak', 'mdia', 'minf', 'stbl'].includes(t)) {\n        patch(b, o + 8, o + sz, delta);\n      }\n      o += sz;\n    }\n  };\n  patch(moovBuf, moov.header, moovBuf.length, moov.size);\n  const parts = [];\n  const ftyp = boxes.find((b) => b.type === 'ftyp');\n  if (ftyp) parts.push(src.subarray(ftyp.start, ftyp.start + ftyp.size));\n  parts.push(moovBuf);\n  for (const b of boxes) { if (b !== moov && b !== ftyp) parts.push(src.subarray(b.start, b.start + b.size)); }\n  return { buf: Buffer.concat(parts), changed: true, layout };\n};\nlet fixed = { buf, changed: false, layout: '' };\nif (brand) fixed = faststart(buf);\nlet brandPatched = false;\nif (brand && brand.startsWith('3g')) {\n  const b2 = Buffer.from(fixed.buf);\n  const ftypSize = b2.readUInt32BE(0);\n  b2.write('mp42', 8, 'latin1');\n  for (let p = 16; p + 4 <= ftypSize; p += 4) { if (b2.toString('latin1', p, p + 2) === '3g') b2.write('isom', p, 'latin1'); }\n  fixed = { buf: b2, changed: true, layout: fixed.layout };\n  brandPatched = true;\n}\nconst alias = { oga: 'ogg', opus: 'ogg' };\nconst extOf = (s) => {\n  const parts = String(s || '').toLowerCase().split('?')[0].split('.');\n  return parts.length > 1 ? parts.pop() : '';\n};\nconst mimeToExt = { 'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/m4a': 'm4a', 'audio/ogg': 'ogg', 'audio/opus': 'ogg', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/webm': 'webm', 'audio/flac': 'flac' };\nconst mimeByExt = { mp3: 'audio/mpeg', mpeg: 'audio/mpeg', mpga: 'audio/mpeg', m4a: 'audio/mp4', mp4: 'audio/mp4', ogg: 'audio/ogg', wav: 'audio/wav', webm: 'audio/webm', flac: 'audio/flac' };\nconst filePath = $('Get File Info').first().json.result?.file_path;\nconst ctx = $('Decide Action').first().json;\nconst st = ctx.state || {};\nconst candidates = [\n  sniffed,\n  extOf(filePath),\n  extOf(st.audio_file_name),\n  mimeToExt[String(bin.mimeType || '').toLowerCase()],\n  mimeToExt[String(st.audio_mime_type || '').toLowerCase()],\n  st.audio_type === 'voice' ? 'ogg' : ''\n].map((e) => alias[e] || e);\nconst ext = candidates.find((e) => supported.includes(e));\nif (!ext) throw new Error('Unsupported audio format for transcription. file_path: ' + filePath);\nconst fileName = 'meeting_audio.' + ext;\nconst outBinary = fixed.changed\n  ? await this.helpers.prepareBinaryData(fixed.buf, fileName, mimeByExt[ext])\n  : { ...bin, fileName, mimeType: mimeByExt[ext] };\nreturn { json: { file_ext: ext, detected_format: sniffed || 'unknown', container_brand: brand.trim(), codec: codec || 'unknown', mp4_layout: fixed.layout, faststart_applied: fixed.changed, brand_patched: brandPatched, bytes: fixed.buf.length, file_path: filePath }, binary: { data: outBinary } };"
+      },
+      "id": "6617a407-c757-4588-bdd9-75cde07f7985",
+      "name": "Prepare Audio File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3088,
+        512
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {
+          "language": "fa"
+        }
+      },
+      "id": "114e7fbb-6b18-4497-b552-27645bc1c5a2",
+      "name": "Transcribe Audio",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        3376,
+        512
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "openAiApi": {
+          "id": "id",
+          "name": "name"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "chat_id",
+              "type": "string",
+              "value": "={{ $('Decide Action').first().json.chat_id }}"
+            },
+            {
+              "id": "b2",
+              "name": "customer_name",
+              "type": "string",
+              "value": "={{ $('Decide Action').first().json.state.customer_name ?? '' }}"
+            },
+            {
+              "id": "b3",
+              "name": "details_text",
+              "type": "string",
+              "value": "={{ $('Decide Action').first().json.state.details_text ?? '' }}"
+            },
+            {
+              "id": "b4",
+              "name": "transcript",
+              "type": "string",
+              "value": "={{ $json.text ?? '' }}"
+            },
+            {
+              "id": "b5",
+              "name": "audio_file_id",
+              "type": "string",
+              "value": "={{ $('Decide Action').first().json.state.audio_file_id ?? '' }}"
+            },
+            {
+              "id": "b6",
+              "name": "source_update_id",
+              "type": "string",
+              "value": "={{ String($('Decide Action').first().json.update_id) }}"
+            },
+            {
+              "id": "b8",
+              "name": "output_type",
+              "type": "string",
+              "value": "={{ $('Decide Action').first().json.output_type }}"
+            },
+            {
+              "id": "b9",
+              "name": "meeting_category",
+              "type": "string",
+              "value": "={{ $('Decide Action').first().json.meeting_category ?? '' }}"
+            },
+            {
+              "id": "b7",
+              "name": "agent_prompt",
+              "type": "string",
+              "value": "={{ '=== OUTPUT TYPE ===\\n' + ($('Decide Action').first().json.output_type === 'proposal' ? 'PROPOSAL' : 'MEETING_MINUTES') + '\\n\\n=== MEETING CATEGORY (the document header with this category is added automatically; do not write it as a title, only adapt content and tone to this kind of session) ===\\n' + ($('Decide Action').first().json.meeting_category ?? '') + '\\n\\n=== DOCUMENT DATE (Jalali, today; assume the meeting took place today unless the notes say otherwise) ===\\n' + new Date().toLocaleDateString('fa-IR-u-ca-persian', { timeZone: 'Asia/Tehran' }) + '\\n\\n=== CUSTOMER NAME ===\\n' + ($('Decide Action').first().json.state.customer_name ?? '') + '\\n\\n=== USER NOTES ===\\n' + ($('Decide Action').first().json.state.details_text ?? '') + '\\n\\n=== MEETING TRANSCRIPT ===\\n' + ($json.text ?? '') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3eca688b-de4e-4fed-bfd1-fa46e0c76f77",
+      "name": "Build Agent Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3664,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.agent_prompt }}",
+        "options": {
+          "systemMessage": "={{ ($json.output_type === 'proposal' ? ['You write formal Persian business documents for a sales and consulting team.','The message has these sections: OUTPUT TYPE, DOCUMENT DATE, CUSTOMER NAME, USER NOTES and MEETING TRANSCRIPT. USER NOTES were typed by the meeting owner and are the most reliable source for names, numbers and decisions. MEETING TRANSCRIPT is speech-to-text output (usually Persian) and may contain recognition errors; correct an obvious error only when the context makes the meaning certain.','TASK: write a formal business proposal (پروپوزال) in Persian, addressed to the customer, based on the needs, problems and requests discussed in the meeting.','RULES: Use only facts found in the notes or the transcript. Never invent prices, timelines, quantities, product features or commitments. Where a price, deadline or scope item was not discussed, write «پس از تکمیل توسط تیم تعیین می‌شود». If the notes and the transcript contradict each other, list the contradiction under the last section.','STRUCTURE (use exactly these section titles, in this order): عنوان پروپوزال / مشتری و تاریخ / خلاصه مدیریتی / درک ما از نیازها و وضعیت فعلی مشتری / راهکار پیشنهادی / محدوده کار / تحویل‌دادنی‌ها / زمان‌بندی پیشنهادی / مفروضات و پیش‌نیازها / هزینه و شرایط پرداخت / گام‌های بعدی / موارد نیازمند تکمیل یا بازبینی.','FORMAT: plain text only. No markdown symbols such as #, *, | or tables. Put each section title on its own line followed by a colon. Use the character • for bullet points. Output only the document, without any introduction or closing remark.'] : ['You write formal Persian business documents for a sales and consulting team.','The message has these sections: OUTPUT TYPE, DOCUMENT DATE, CUSTOMER NAME, USER NOTES and MEETING TRANSCRIPT. USER NOTES were typed by the meeting owner and are the most reliable source for names, numbers and decisions. MEETING TRANSCRIPT is speech-to-text output (usually Persian) and may contain recognition errors; correct an obvious error only when the context makes the meaning certain.','TASK: write official meeting minutes (صورت‌جلسه) in Persian.','RULES: Use only facts found in the notes or the transcript. Never invent names, numbers, dates, prices or commitments. When something is missing, write «در جلسه ذکر نشد». If the notes and the transcript contradict each other, list the contradiction under the last section.','STRUCTURE (use exactly these section titles, in this order): عنوان جلسه / تاریخ و مشتری / شرکت‌کنندگان / موضوعات مطرح‌شده / خلاصه مذاکرات / تصمیمات اتخاذشده / اقدامات بعدی (هر مورد: شرح، مسئول، مهلت) / مسائل باز / موارد نیازمند بازبینی.','FORMAT: plain text only. No markdown symbols such as #, *, | or tables. Put each section title on its own line followed by a colon. Use the character • for bullet points. Output only the document, without any introduction or closing remark.']).join('\\n') }}"
+        }
+      },
+      "id": "c55a9aab-7cbb-42d3-afdb-36392100f34a",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3968,
+        512
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "cachedResultName": "gpt-5.4-mini",
+          "mode": "list",
+          "value": "gpt-5.4-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "b6b74071-5dfc-4e0c-8107-0732a810d5c7",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        3952,
+        752
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "id",
+          "name": "name"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "bale meeting state v1",
+          "mode": "list",
+          "value": "YOUR_MEETING_RECORDS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "keyValue": "={{ $('Decide Action').first().json.chat_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false,
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "schema": [
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "chat_id",
+              "id": "chat_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "user_id",
+              "id": "user_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "stage",
+              "id": "stage",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_id",
+              "id": "audio_file_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_type",
+              "id": "audio_type",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_name",
+              "id": "audio_file_name",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_mime_type",
+              "id": "audio_mime_type",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_size",
+              "id": "audio_file_size",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "details_text",
+              "id": "details_text",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "customer_name",
+              "id": "customer_name",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "updated_at",
+              "id": "updated_at",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "last_update_id",
+              "id": "last_update_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "value": {
+            "chat_id": "={{ $('Decide Action').first().json.chat_id }}",
+            "customer_name": "={{ $('Decide Action').first().json.text }}",
+            "last_update_id": "={{ String($('Decide Action').first().json.update_id) }}",
+            "stage": "awaiting_mobile",
+            "updated_at": "={{ $now.toISO() }}",
+            "user_id": "={{ $('Decide Action').first().json.user_id }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "c1a10001-0000-4000-8000-000000000001",
+      "name": "Save State - Customer Saved",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'خروجی نهایی را چه نوعی بسازم؟', reply_markup: { inline_keyboard: [[{ text: 'صورت‌جلسه', callback_data: 'type_minutes' }, { text: 'پروپوزال', callback_data: 'type_proposal' }]] } }) }}",
+        "options": {}
+      },
+      "id": "c1a10002-0000-4000-8000-000000000002",
+      "name": "Ask Output Type",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = String($json.output ?? '').trim();\nconst ctx = $('Build Agent Input').first().json;\nconst label = ctx.output_type === 'proposal' ? 'پروپوزال' : 'صورت‌جلسه';\nconst text = out || 'متنی تولید نشد. لطفاً دوباره با /start شروع کنید.';\nconst MAX = 3800;\nconst chunks = [];\nlet rest = text;\nwhile (rest.length > MAX) {\n  let cut = rest.lastIndexOf('\\n\\n', MAX);\n  if (cut < MAX * 0.5) cut = rest.lastIndexOf('\\n', MAX);\n  if (cut < MAX * 0.5) cut = MAX;\n  chunks.push(rest.slice(0, cut).trim());\n  rest = rest.slice(cut).trim();\n}\nif (rest) chunks.push(rest);\nreturn chunks.map((c, i) => ({ json: { chat_id: ctx.chat_id, text: (i === 0 ? label + '\\n\\n' : '') + c, part: i + 1, parts: chunks.length } }));"
+      },
+      "id": "c1a10003-0000-4000-8000-000000000003",
+      "name": "Split Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4272,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chat_id, text: $json.text }) }}",
+        "options": {}
+      },
+      "id": "c1a10004-0000-4000-8000-000000000004",
+      "name": "Send Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4560,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'متأسفانه در پردازش فایل صوتی یا ساخت خروجی خطایی رخ داد. لطفاً با ارسال /start دوباره شروع کنید.' }) }}",
+        "options": {}
+      },
+      "id": "c1a10005-0000-4000-8000-000000000005",
+      "name": "Send Error Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4512,
+        1424
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "bale meeting state v1",
+          "mode": "list",
+          "value": "YOUR_MEETING_RECORDS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "keyValue": "={{ $('Decide Action').first().json.chat_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false,
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "schema": [
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "chat_id",
+              "id": "chat_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "user_id",
+              "id": "user_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "stage",
+              "id": "stage",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_id",
+              "id": "audio_file_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_type",
+              "id": "audio_type",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_name",
+              "id": "audio_file_name",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_mime_type",
+              "id": "audio_mime_type",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_size",
+              "id": "audio_file_size",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "details_text",
+              "id": "details_text",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "customer_name",
+              "id": "customer_name",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "updated_at",
+              "id": "updated_at",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "last_update_id",
+              "id": "last_update_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "output_type",
+              "id": "output_type",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "value": {
+            "chat_id": "={{ $('Decide Action').first().json.chat_id }}",
+            "last_update_id": "={{ String($('Decide Action').first().json.update_id) }}",
+            "output_type": "={{ $('Decide Action').first().json.output_type }}",
+            "stage": "awaiting_category",
+            "updated_at": "={{ $now.toISO() }}",
+            "user_id": "={{ $('Decide Action').first().json.user_id }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "c2a10001-0000-4000-8000-000000000001",
+      "name": "Save State - Type Selected",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2208,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'نوع جلسه را انتخاب کنید:', reply_markup: { inline_keyboard: [[{ text: 'جلسه مشاوره', callback_data: 'cat_consult' }], [{ text: 'جلسه کوچینگ', callback_data: 'cat_coaching' }], [{ text: 'جلسه آموزش', callback_data: 'cat_training' }]] } }) }}",
+        "options": {}
+      },
+      "id": "c2a10002-0000-4000-8000-000000000002",
+      "name": "Ask Category",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2512,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Build Agent Input').first().json;\nconst dec = $('Decide Action').first().json;\nconst category = dec.meeting_category || 'جلسه مشاوره';\nconst docLabel = ctx.output_type === 'proposal' ? 'پروپوزال' : 'صورت‌جلسه';\nconst body = String($input.first().json.output || '').trim();\nconst dateFa = new Date().toLocaleDateString('fa-IR-u-ca-persian', { timeZone: 'Asia/Tehran' });\nconst esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst font = '<w:rFonts w:ascii=\"Tahoma\" w:hAnsi=\"Tahoma\" w:cs=\"Tahoma\"/>';\nconst para = (text, opt = {}) => {\n  const size = opt.size || 24;\n  const jc = opt.center ? '<w:jc w:val=\"center\"/>' : '';\n  const bold = opt.bold ? '<w:b/><w:bCs/>' : '';\n  const after = opt.after === undefined ? 120 : opt.after;\n  return '<w:p><w:pPr><w:bidi/><w:spacing w:after=\"' + after + '\"/>' + jc + '</w:pPr><w:r><w:rPr>' + font + bold + '<w:sz w:val=\"' + size + '\"/><w:szCs w:val=\"' + size + '\"/><w:rtl/></w:rPr><w:t xml:space=\"preserve\">' + esc(text) + '</w:t></w:r></w:p>';\n};\nconst paras = [];\nparas.push(para(category, { bold: true, size: 40, center: true, after: 200 }));\nparas.push(para(docLabel, { bold: true, size: 30, center: true, after: 240 }));\nparas.push(para('مشتری: ' + (ctx.customer_name || ''), { bold: true }));\nparas.push(para('تاریخ: ' + dateFa));\nparas.push(para('', { after: 120 }));\nfor (const line of body.split(/\\r?\\n/)) {\n  const t = line.trim();\n  if (!t) { paras.push(para('', { after: 60 })); continue; }\n  const isHeading = t.length <= 60 && /[:：]$/.test(t) && !t.startsWith('•');\n  paras.push(para(t, { bold: isHeading, size: isHeading ? 26 : 24 }));\n}\nconst documentXml = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body>' + paras.join('') + '<w:sectPr><w:pgSz w:w=\"11906\" w:h=\"16838\"/><w:pgMar w:top=\"1440\" w:right=\"1440\" w:bottom=\"1440\" w:left=\"1440\" w:header=\"708\" w:footer=\"708\" w:gutter=\"0\"/><w:bidi/></w:sectPr></w:body></w:document>';\nconst contentTypes = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>';\nconst rels = '<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/></Relationships>';\nconst crcTable = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();\nconst crc32 = (buf) => { let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = crcTable[(c ^ buf[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };\nconst files = [['[Content_Types].xml', contentTypes], ['_rels/.rels', rels], ['word/document.xml', documentXml]];\nconst localParts = [];\nconst central = [];\nlet offset = 0;\nfor (const [name, content] of files) {\n  const nameBuf = Buffer.from(name, 'utf8');\n  const data = Buffer.from(content, 'utf8');\n  const crc = crc32(data);\n  const lh = Buffer.alloc(30);\n  lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt16LE(0x0800, 6); lh.writeUInt16LE(0, 8); lh.writeUInt16LE(0, 10); lh.writeUInt16LE(0x21, 12); lh.writeUInt32LE(crc, 14); lh.writeUInt32LE(data.length, 18); lh.writeUInt32LE(data.length, 22); lh.writeUInt16LE(nameBuf.length, 26); lh.writeUInt16LE(0, 28);\n  localParts.push(lh, nameBuf, data);\n  const ch = Buffer.alloc(46);\n  ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt16LE(20, 4); ch.writeUInt16LE(20, 6); ch.writeUInt16LE(0x0800, 8); ch.writeUInt16LE(0, 10); ch.writeUInt16LE(0, 12); ch.writeUInt16LE(0x21, 14); ch.writeUInt32LE(crc, 16); ch.writeUInt32LE(data.length, 20); ch.writeUInt32LE(data.length, 24); ch.writeUInt16LE(nameBuf.length, 28); ch.writeUInt16LE(0, 30); ch.writeUInt16LE(0, 32); ch.writeUInt16LE(0, 34); ch.writeUInt16LE(0, 36); ch.writeUInt32LE(0, 38); ch.writeUInt32LE(offset, 42);\n  central.push(ch, nameBuf);\n  offset += 30 + nameBuf.length + data.length;\n}\nconst centralBuf = Buffer.concat(central);\nconst end = Buffer.alloc(22);\nend.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(0, 4); end.writeUInt16LE(0, 6); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10); end.writeUInt32LE(centralBuf.length, 12); end.writeUInt32LE(offset, 16); end.writeUInt16LE(0, 20);\nconst zip = Buffer.concat([...localParts, centralBuf, end]);\nconst fileName = (category + ' - ' + docLabel + ' - ' + (ctx.customer_name || 'مشتری')).replace(/[\\\\/:*?\"<>|]/g, ' ').trim() + '.docx';\nconst binary = await this.helpers.prepareBinaryData(zip, fileName, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');\nreturn [{ json: { ...$input.first().json, docx_name: fileName, chat_id: ctx.chat_id, customer_name: ctx.customer_name, meeting_category: category, output_type: ctx.output_type }, binary: { data: binary } }];"
+      },
+      "id": "c2a10003-0000-4000-8000-000000000003",
+      "name": "Build DOCX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4272,
+        288
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendDocument",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $json.chat_id }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.meeting_category + ' - ' + ($json.output_type === 'proposal' ? 'پروپوزال' : 'صورت‌جلسه') }}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "document",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c2a10004-0000-4000-8000-000000000004",
+      "name": "Send DOCX",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4560,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'شماره موبایل مشتری را بفرستید (مثلاً 09123456789):' }) }}",
+        "options": {}
+      },
+      "id": "c3a10001-0000-4000-8000-000000000001",
+      "name": "Ask Mobile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        1392
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'شماره موبایل معتبر نیست. لطفاً شماره را به شکل 09123456789 بفرستید.' }) }}",
+        "options": {}
+      },
+      "id": "c3a10002-0000-4000-8000-000000000002",
+      "name": "Send Bad Mobile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "bale meeting state v1",
+          "mode": "list",
+          "value": "YOUR_MEETING_RECORDS_TABLE_ID"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "keyValue": "={{ $('Decide Action').first().json.chat_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false,
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "schema": [
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "chat_id",
+              "id": "chat_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "user_id",
+              "id": "user_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "stage",
+              "id": "stage",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_id",
+              "id": "audio_file_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_type",
+              "id": "audio_type",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_name",
+              "id": "audio_file_name",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_mime_type",
+              "id": "audio_mime_type",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "audio_file_size",
+              "id": "audio_file_size",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "details_text",
+              "id": "details_text",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "customer_name",
+              "id": "customer_name",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "updated_at",
+              "id": "updated_at",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "last_update_id",
+              "id": "last_update_id",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "output_type",
+              "id": "output_type",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "customer_mobile",
+              "id": "customer_mobile",
+              "readOnly": false,
+              "removed": false,
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "value": {
+            "chat_id": "={{ $('Decide Action').first().json.chat_id }}",
+            "customer_mobile": "={{ $('Decide Action').first().json.mobile }}",
+            "last_update_id": "={{ String($('Decide Action').first().json.update_id) }}",
+            "stage": "awaiting_output_type",
+            "updated_at": "={{ $now.toISO() }}",
+            "user_id": "={{ $('Decide Action').first().json.user_id }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "c3a10003-0000-4000-8000-000000000003",
+      "name": "Save State - Mobile Saved",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1904,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "person",
+        "operation": "getByPhone",
+        "MobilePhone": "={{ String($('Decide Action').first().json.state.customer_mobile ?? '').trim() }}"
+      },
+      "id": "d1a10001-0000-4000-8000-000000000001",
+      "name": "Didar - Find Person",
+      "type": "n8n-nodes-didar-crm.didarCrm",
+      "typeVersion": 1,
+      "position": [
+        4640,
+        16
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "alwaysOutputData": true,
+      "credentials": {
+        "didarApi": {
+          "id": "id",
+          "name": "name"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "p1",
+              "leftValue": "={{ $json.Response?.[0]?.Id ?? '' }}",
+              "operator": {
+                "operation": "notEmpty",
+                "singleValue": true,
+                "type": "string"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "d1a10002-0000-4000-8000-000000000002",
+      "name": "Person Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4864,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "person",
+        "FirstName": "={{ (() => { const s = String($('Decide Action').first().json.state.customer_name ?? '').trim().replace(/\\s+/g, ' '); const a = s ? s.split(' ').filter(Boolean) : []; return a.length > 1 ? a[0] : ''; })() }}",
+        "LastName": "={{ (() => { const s = String($('Decide Action').first().json.state.customer_name ?? '').trim().replace(/\\s+/g, ' '); const a = s ? s.split(' ').filter(Boolean) : []; if (a.length > 1) return a.slice(1).join(' '); if (a.length === 1) return a[0]; return 'مشتری ' + String($('Decide Action').first().json.state.customer_mobile ?? '').slice(-4); })() }}",
+        "MobilePhone": "={{ String($('Decide Action').first().json.state.customer_mobile ?? '').trim() }}",
+        "OwnerMode": "manual",
+        "OwnerIdManual": "YOUR_DIDAR_OWNER_ID",
+        "additionalFields": {}
+      },
+      "id": "d1a10003-0000-4000-8000-000000000003",
+      "name": "Didar - Create Person",
+      "type": "n8n-nodes-didar-crm.didarCrm",
+      "typeVersion": 1,
+      "position": [
+        5088,
+        128
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "didarApi": {
+          "id": "id",
+          "name": "name"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst r = j.Response;\nlet id = '';\nif (Array.isArray(r)) id = (r[0] && r[0].Id) || '';\nelse id = (r && (r.Id || r.PersonId)) || j.Id || '';\nif (!id) throw new Error('Didar person id not found: ' + JSON.stringify(j).slice(0, 300));\nreturn [{ json: { person_id: id, person_created: !Array.isArray(r) } }];"
+      },
+      "id": "d1a10004-0000-4000-8000-000000000004",
+      "name": "Pick Person Id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5312,
+        16
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "activity",
+        "Title": "={{ $('Decide Action').first().json.meeting_category + ' - ' + ($('Decide Action').first().json.output_type === 'proposal' ? 'پروپوزال' : 'صورت‌جلسه') + ' - ' + ($('Decide Action').first().json.state.customer_name ?? '') }}",
+        "ActivityTypeMode": "manual",
+        "ActivityTypeIdManual": "={{ $('Decide Action').first().json.meeting_category === 'جلسه آموزش' ? 'YOUR_DIDAR_TRAINING_ACTIVITY_TYPE_ID' : 'YOUR_DIDAR_MEETING_ACTIVITY_TYPE_ID' }}",
+        "OwnerMode": "manual",
+        "OwnerIdManual": "YOUR_DIDAR_OWNER_ID",
+        "IsDone": true,
+        "additionalFields": {
+          "Note": "={{ $('Decide Action').first().json.meeting_category + ' - ' + ($('Decide Action').first().json.output_type === 'proposal' ? 'پروپوزال' : 'صورت‌جلسه') + ' (ثبت خودکار توسط دستیار جلسه HH؛ فایل Word پیوست شده است)' }}",
+          "DoneDate": "={{ $now.toISO() }}",
+          "ContactIds": [
+            "={{ JSON.stringify([$json.person_id]) }}"
+          ]
+        }
+      },
+      "id": "d1a10005-0000-4000-8000-000000000005",
+      "name": "Didar - Create Activity",
+      "type": "n8n-nodes-didar-crm.didarCrm",
+      "typeVersion": 1,
+      "position": [
+        5536,
+        16
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "didarApi": {
+          "id": "id",
+          "name": "name"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nconst r = j.Response;\nconst id = (typeof r === 'string' ? r : (r && (r.Id || r.ActivityId))) || j.Id || '';\nif (!id) throw new Error('Didar activity id not found: ' + JSON.stringify(j).slice(0, 300));\nreturn [{ json: { activity_id: id, person_id: $('Pick Person Id').first().json.person_id }, binary: $('Build DOCX').first().binary }];"
+      },
+      "id": "d1a10006-0000-4000-8000-000000000006",
+      "name": "Pick Activity Id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5760,
+        16
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.didar.me/api/activity/AttachFilesToActivity",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "activityId",
+              "value": "={{ $json.activity_id }}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "uploads",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d1a10007-0000-4000-8000-000000000007",
+      "name": "Didar - Attach File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5984,
+        16
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "id",
+          "name": "h"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: '✅ در دیدار ثبت شد\\nمشتری: ' + ($('Decide Action').first().json.state.customer_name ?? '') + ($('Pick Person Id').first().json.person_created ? ' (مشتری جدید ساخته شد)' : ' (مشتری موجود)') + '\\nفایل Word در بخش «افزودن فعالیت» همین مشتری قرار گرفت.' }) }}",
+        "options": {}
+      },
+      "id": "d1a10008-0000-4000-8000-000000000008",
+      "name": "Send Didar Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        6208,
+        16
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=bale{{ $('Bale Settings').first().json.YOUR_BALE_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Normalize Update').first().json.chat_id, text: 'ثبت در دیدار انجام نشد. فایل Word در همین گفتگو ارسال شده است؛ لطفاً آن را دستی در دیدار بارگذاری کنید یا به پشتیبان خبر دهید.' }) }}",
+        "options": {}
+      },
+      "id": "d1a10009-0000-4000-8000-000000000009",
+      "name": "Send Didar Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5312,
+        304
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Bale Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bale Settings": {
+      "main": [
+        [
+          {
+            "node": "Normalize Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Update": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get State": {
+      "main": [
+        [
+          {
+            "node": "Build Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Context": {
+      "main": [
+        [
+          {
+            "node": "Is New Update?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Update?": {
+      "main": [
+        [
+          {
+            "node": "Decide Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide Action": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Reset State - Start",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save State - Awaiting Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save State - Audio Received",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save State - Awaiting Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save State - Details Saved",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save State - Customer Saved",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Not Understood",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Follow Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save State - Type Selected",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Meeting Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save State - Mobile Saved",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Bad Mobile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset State - Start": {
+      "main": [
+        [
+          {
+            "node": "Send Greeting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save State - Awaiting Audio": {
+      "main": [
+        [
+          {
+            "node": "Ask For Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save State - Audio Received": {
+      "main": [
+        [
+          {
+            "node": "Ask Audio Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save State - Awaiting Details": {
+      "main": [
+        [
+          {
+            "node": "Ask For Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save State - Details Saved": {
+      "main": [
+        [
+          {
+            "node": "Ask For Customer Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Meeting Record": {
+      "main": [
+        [
+          {
+            "node": "Reset State - Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset State - Done": {
+      "main": [
+        [
+          {
+            "node": "Send Processing Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Processing Message": {
+      "main": [
+        [
+          {
+            "node": "Get File Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get File Info": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Prepare Audio File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Audio File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Audio": {
+      "main": [
+        [
+          {
+            "node": "Build Agent Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Agent Input": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Build DOCX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save State - Type Selected": {
+      "main": [
+        [
+          {
+            "node": "Ask Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build DOCX": {
+      "main": [
+        [
+          {
+            "node": "Split Reply",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send DOCX",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Didar - Find Person",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save State - Customer Saved": {
+      "main": [
+        [
+          {
+            "node": "Ask Mobile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save State - Mobile Saved": {
+      "main": [
+        [
+          {
+            "node": "Ask Output Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Didar - Find Person": {
+      "main": [
+        [
+          {
+            "node": "Person Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Didar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Person Exists?": {
+      "main": [
+        [
+          {
+            "node": "Pick Person Id",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Didar - Create Person",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Didar - Create Person": {
+      "main": [
+        [
+          {
+            "node": "Pick Person Id",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Didar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Person Id": {
+      "main": [
+        [
+          {
+            "node": "Didar - Create Activity",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Didar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Didar - Create Activity": {
+      "main": [
+        [
+          {
+            "node": "Pick Activity Id",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Didar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Activity Id": {
+      "main": [
+        [
+          {
+            "node": "Didar - Attach File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Didar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Didar - Attach File": {
+      "main": [
+        [
+          {
+            "node": "Send Didar Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Didar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "b65c5343-dc0f-4d14-a3d2-7798cd71f5f0",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "instanceId"
+  },
+  "nodeGroups": [],
+  "id": "AXsV0wfb1YVAZwjT",
+  "tags": []
+}
